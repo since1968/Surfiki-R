@@ -26,7 +26,7 @@ res = json.loads(decoded)
 hits = res['hits']['hits']
 
 f = open('republicans.csv', "wb+")
-csv_file = csv.writer(f)
+csv_file = csv.writer(f, quoting=csv.QUOTE_ALL)
 csv_file.writerow(['strItemLinkURL','strItemTitle','strKeywords','strItemKeywords','dTItemDateTime','dtInsertDT','strItemDesc','intFKstrLinkURL','strSemItemKeywords','strItemTitleKeywords','bitHasLocation','strOpinon','strObjSubj','strSGML','strLocation','strNames','geoLat','geoLong','strURLType','strImageURL','strIOFileName','strEmails','bitHasEmails','strPhones','bitHasPhones','bitHasNames','bitHasMoney','strMoney','bitHasNumerics','strNumerics','bitHasQuestions','strURLS','bitHasURLS','bitHasMetrics','strSC','strWC','strWPS','strSYC','strSPW','strLD','strKGL','strFRE','strGFI','bitHasMisc','strMiscOne','strMiscTwo','strMiscThree','strMiscFour','strMiscFive'])
 
 for hit in hits:

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import os
 from os.path import abspath, dirname, join
 import httplib
 import time
@@ -13,25 +14,37 @@ headers = {}
 headers['Content-Type'] = 'application/json'
 current = int(round(time.time() * 1000))
 hourago = current - 1000 * 60 * 60 * 24 * 120
-body_content = "{\"query\": {\"bool\": {\"must\": [{\"range\": {\"dtInsertDT\": {\"from\": $start,\"to\": $end}}},{\"query_string\": {\"default_field\": \"strItemKeywords\",\"query\": \"obama\"}}],\"must_not\": [],\"should\": []},\"from\": 0,\"size\": 1000000,\"sort\": [],\"facets\": {}}}"
+body_content = "{\"query\": {\"bool\": {\"must\": [{\"range\": {\"dTItemDateTime\": {\"from\": $start,\"to\": $end}}},{\"query_string\": {\"default_field\": \"strItemKeywords\",\"query\": \"obama\"}}],\"must_not\": [],\"should\": []},\"from\": 0,\"size\": 0,\"sort\": [],\"facets\": {}}}"
 body_content = body_content.replace("$start", str(hourago))
 body_content = body_content.replace("$end", str(current))
-print body_content
-connection.request("POST",'/search/surfiki/_search',body_content,headers)
-result = connection.getresponse()
-data = result.read()
-connection.close()
-decoded = data.decode('utf-8','ignore')
-res = json.loads(decoded)
-hits = res['hits']['hits']
-
-f = open('obama.csv', "wb+")
-csv_file = csv.writer(f, quoting=csv.QUOTE_ALL)
-csv_file.writerow(['strURLType','dTItemDateTime','strOpinon','strOnjSubj'])
-
-for hit in hits:
-    try:
-        csv_file.writerow([hit['_source']['strURLType'],hit['_source']['dTItemDateTime'],hit['_source']['strOpinon'],hit['_source']['strObjSubj']])
-    except (UnicodeEncodeError) as ex:
-        continue
+connection.request("POST",'/search/surfiki/_search?search_type=count',body_content,headers)
+res = json.loads(connection.getresponse().read().decode('utf-8','ignore'))
+total = int(res['hits']['total'])
+if os.path.exists('obama.csv'):
+    os.remove('obama.csv')
+f = open('obama.csv', 'w')
 f.close()
+
+size = 2000 
+for index in range(0, (total + 1)/size - 1):
+    body_content = "{\"query\": {\"bool\": {\"must\": [{\"range\": {\"dTItemDateTime\": {\"from\": $start,\"to\": $end}}},{\"query_string\": {\"default_field\": \"strItemKeywords\",\"query\": \"obama\"}}],\"must_not\": [],\"should\": []},\"from\": $begin,\"size\": $size,\"sort\": [],\"facets\": {}}}"
+    body_content = body_content.replace("$start", str(hourago))
+    body_content = body_content.replace("$end", str(current))
+    body_content = body_content.replace("$begin", str(index*size))
+    body_content = body_content.replace("$size", str(size))
+    print body_content
+    connection.request("POST",'/search/surfiki/_search',body_content,headers)
+    res = json.loads(connection.getresponse().read().decode('utf-8','ignore'))
+    hits = res['hits']['hits']
+
+    f = open('obama.csv', "a")
+    csv_file = csv.writer(f, quoting=csv.QUOTE_ALL)
+    csv_file.writerow(['strURLType','dTItemDateTime','strOpinion','strObjSubj'])
+
+    for hit in hits:
+        try:
+            csv_file.writerow([hit['_source']['strURLType'],hit['_source']['dTItemDateTime'],hit['_source']['strOpinon'],hit['_source']['strObjSubj']])
+        except (UnicodeEncodeError) as ex:
+            continue
+    f.close()
+connection.close()
